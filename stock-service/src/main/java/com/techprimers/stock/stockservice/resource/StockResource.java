@@ -13,6 +13,7 @@ import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,30 +21,66 @@ import java.util.stream.Collectors;
 @RequestMapping("/rest/stock")
 public class StockResource {
 
-    @Autowired
-    RestTemplate restTemplate;
+	@Autowired
+	RestTemplate restTemplate;
 
-    @GetMapping("/{username}")
-    public List<Stock> getStock(@PathVariable("username") final String userName) {
+	@GetMapping("/v1/{username}")
+	public List<Stock> getStockV1(@PathVariable("username") final String userName) {
 
-        ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://localhost:8300/rest/db/" + userName, HttpMethod.GET,
-                null, new ParameterizedTypeReference<List<String>>() {
-                });
+		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://db-service/rest/db/" + userName,
+				HttpMethod.GET, null, new ParameterizedTypeReference<List<String>>() {
+				});
 
+		List<String> quotes = quoteResponse.getBody();
+		return quotes.stream().map(this::getStockPrice).collect(Collectors.toList());
+	}
 
-        List<String> quotes = quoteResponse.getBody();
-        return quotes
-                .stream()
-                .map(this::getStockPrice)
-                .collect(Collectors.toList());
-    }
+	@GetMapping("/{username}")
+	public List<Quote> getStock(@PathVariable("username") final String userName) {
 
-    private Stock getStockPrice(String quote) {
-        try {
-            return YahooFinance.get(quote);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new Stock(quote);
-        }
-    }
+		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://db-service/rest/db/" + userName,
+				HttpMethod.GET, null, new ParameterizedTypeReference<List<String>>() {
+				});
+
+		List<String> quotes = quoteResponse.getBody();
+		return quotes.stream().map(quote -> {
+			Stock stock = getStockPrice(quote);
+			return new Quote(quote, stock.getQuote().getPrice());
+		}).collect(Collectors.toList());
+	}
+
+	private Stock getStockPrice(String quote) {
+		try {
+			return YahooFinance.get(quote);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new Stock(quote);
+		}
+	}
+
+	private class Quote {
+		private String quote;
+		private BigDecimal price;
+
+		public Quote(String quote, BigDecimal price) {
+			this.quote = quote;
+			this.price = price;
+		}
+
+		public String getQuote() {
+			return quote;
+		}
+
+		public void setQuote(String quote) {
+			this.quote = quote;
+		}
+
+		public BigDecimal getPrice() {
+			return price;
+		}
+
+		public void setPrice(BigDecimal price) {
+			this.price = price;
+		}
+	}
 }
