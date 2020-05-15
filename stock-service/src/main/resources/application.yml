@@ -15,7 +15,10 @@ eureka:
   instance:
     hostname: localhost
 
-zuul:
-  host:
-    connect-timeout-millis: 600000 # starting the connection 
-    socket-timeout-millis: 600000  # monitor the continuous incoming data flow
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
