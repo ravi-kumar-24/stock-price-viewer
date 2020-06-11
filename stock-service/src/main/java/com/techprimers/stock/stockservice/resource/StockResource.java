@@ -1,5 +1,6 @@
 package com.techprimers.stock.stockservice.resource;
 
+import com.techprimers.stock.stockservice.model.Quote;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -45,16 +46,19 @@ public class StockResource {
 	@GetMapping("/{username}")
 	public List<Quote> getStock(@PathVariable("username") final String userName) {
 
-		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange("http://db-service/rest/db/" + userName,
-				HttpMethod.GET, null, new ParameterizedTypeReference<List<String>>() {
+		ResponseEntity<List<String>> quoteResponse = restTemplate.exchange
+				("http://db-service/rest/db/" + userName,
+				HttpMethod.GET,
+						null,
+						new ParameterizedTypeReference<List<String>>() {
 				});
 
 		List<String> quotes = quoteResponse.getBody();
 		return quotes.stream().map(quote -> {
 			Stock stock = getStockPrice(quote);
-			System.out.println("This is stock price for "+quote+" "+stock.getQuote().getPrice());
 			return new Quote(quote, stock.getQuote().getPrice());
-		}).collect(Collectors.toList());
+		}
+		).collect(Collectors.toList());
 	}
 	 
 	 public List<Stock> fallbackStock( final String userName, Throwable hystrixCommand) {
@@ -62,7 +66,7 @@ public class StockResource {
 	        return new LinkedList<Stock>();
 	    }
 	 
-	 public List<Quote> fallbackQuote( final String userName, Throwable hystrixCommand) {
+	 public List<Quote> fallbackQuote(final String userName, Throwable hystrixCommand) {
 		 System.out.println("Called next one empty class");
 	        return new LinkedList<Quote>();
 	    }
@@ -77,29 +81,4 @@ public class StockResource {
 		}
 	}
 
-	private class Quote {
-		private String quote;
-		private BigDecimal price;
-
-		public Quote(String quote, BigDecimal price) {
-			this.quote = quote;
-			this.price = price;
-		}
-
-		public String getQuote() {
-			return quote;
-		}
-
-		public void setQuote(String quote) {
-			this.quote = quote;
-		}
-
-		public BigDecimal getPrice() {
-			return price;
-		}
-
-		public void setPrice(BigDecimal price) {
-			this.price = price;
-		}
-	}
 }
